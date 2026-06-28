@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - PromptVault{% endblock %}
+{% block content %}
+<header class="page-header">
+    <div>
+        <h1>Dashboard</h1>
+        <p>Ringkasan prompt, task produksi, dan action cepat.</p>
+    </div>
+    <div class="actions">
+        <a class="btn btn-secondary" href="{{ url_for('prompt_new') }}">Tambah Prompt</a>
+        <a class="btn btn-primary" href="{{ url_for('generator') }}">Prompt Generator</a>
+    </div>
+</header>
+
+<section class="stats-grid">
+    <article class="card stat"><span>Total Prompt</span><strong>{{ total_prompts }}</strong></article>
+    <article class="card stat"><span>Total Task</span><strong>{{ total_tasks }}</strong></article>
+    <article class="card stat"><span>Task Selesai</span><strong>{{ completed_tasks }}</strong></article>
+    <article class="card stat">
+        <span>Rating Tertinggi</span>
+        <strong>{{ top_prompt.title if top_prompt else '-' }}</strong>
+    </article>
+</section>
+
+<section class="two-column">
+    <div class="card">
+        <div class="section-head">
+            <h2>Recent Prompts</h2>
+            <a href="{{ url_for('prompts_index') }}">Lihat semua</a>
+        </div>
+        {% if recent_prompts %}
+            <div class="list-stack">
+                {% for prompt in recent_prompts %}
+                    <a class="list-row" href="{{ url_for('prompt_detail', id=prompt.id) }}">
+                        <span>{{ prompt.title }}</span>
+                        <small>{{ prompt.category }} · {{ prompt.platform }} · {{ prompt.rating }}/5</small>
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty">Belum ada prompt tersimpan.</div>
+        {% endif %}
+    </div>
+    <div class="card">
+        <div class="section-head">
+            <h2>Task Terbaru</h2>
+            <a href="{{ url_for('tasks_index') }}">Lihat semua</a>
+        </div>
+        {% if recent_tasks %}
+            <div class="list-stack">
+                {% for task in recent_tasks %}
+                    <div class="list-row">
+                        <span>{{ task.title }}</span>
+                        <small><span class="badge status-{{ task.status|lower|replace(' ', '-') }}">{{ task.status }}</span> {{ task.platform }}</small>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty">Belum ada content task.</div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

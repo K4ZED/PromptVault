@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Prompt Generator - PromptVault{% endblock %}
+{% block content %}
+<header class="page-header">
+    <div>
+        <h1>Prompt Generator</h1>
+        <p>Buat prompt batik dari template lokal tanpa API eksternal.</p>
+    </div>
+</header>
+
+<section class="two-column generator-grid">
+    <form method="post" class="card form">
+        <div class="form-grid">
+            <label>Model Type
+                <select name="model_type">
+                    {% for value, label in [('female','Female'),('male','Male'),('couple','Couple'),('none','None')] %}
+                        <option value="{{ value }}" {{ 'selected' if form_data.get('model_type') == value else '' }}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Product Type
+                <select name="product_type">
+                    {% for value in ['kemeja batik','blouse batik','dress batik','outer batik','kain batik','custom'] %}
+                        <option value="{{ value }}" {{ 'selected' if form_data.get('product_type') == value else '' }}>{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Custom Product
+                <input name="custom_product" value="{{ form_data.get('custom_product','') }}">
+            </label>
+            <label>Location
+                <select name="location">
+                    {% for value in ['studio','ruang tamu','outdoor','butik','kantor','custom'] %}
+                        <option value="{{ value }}" {{ 'selected' if form_data.get('location') == value else '' }}>{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Custom Location
+                <input name="custom_location" value="{{ form_data.get('custom_location','') }}">
+            </label>
+            <label>Content Style
+                <select name="content_style">
+                    {% for value in ['affiliate','cinematic','casual','premium','product showcase'] %}
+                        <option value="{{ value }}" {{ 'selected' if form_data.get('content_style') == value else '' }}>{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Camera Movement
+                <select name="camera_movement">
+                    {% for value in ['static','slow push-in','zoom in','handheld','orbit','tracking shot'] %}
+                        <option value="{{ value }}" {{ 'selected' if form_data.get('camera_movement') == value else '' }}>{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Duration
+                <select name="duration">
+                    {% for value in ['10s','15s','30s'] %}
+                        <option value="{{ value }}" {{ 'selected' if form_data.get('duration') == value else '' }}>{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Aspect Ratio
+                <select name="aspect_ratio">
+                    {% for value in ['9:16','1:1','16:9'] %}
+                        <option value="{{ value }}" {{ 'selected' if form_data.get('aspect_ratio') == value else '' }}>{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Visual Style
+                <select name="visual_style">
+                    {% for value in visual_styles %}
+                        <option value="{{ value }}" {{ 'selected' if form_data.get('visual_style') == value else '' }}>{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+        </div>
+        <label>Selling Point
+            <textarea name="selling_point" rows="3">{{ form_data.get('selling_point','') }}</textarea>
+        </label>
+        <label>Additional Instruction
+            <textarea name="additional_instruction" rows="3">{{ form_data.get('additional_instruction','') }}</textarea>
+        </label>
+        <button class="btn btn-primary" type="submit">Generate Prompt</button>
+    </form>
+
+    <div class="card">
+        <div class="section-head">
+            <h2>Preview Output</h2>
+            {% if generated_prompt %}<button class="btn btn-small btn-secondary" data-copy="{{ generated_prompt|e }}">Copy Main</button>{% endif %}
+        </div>
+        <div class="prompt-box">{{ generated_prompt or 'Output prompt akan muncul setelah form digenerate.' }}</div>
+        <div class="section-head top-space">
+            <h2>Negative Prompt</h2>
+            {% if negative_prompt %}<button class="btn btn-small btn-secondary" data-copy="{{ negative_prompt|e }}">Copy Negative</button>{% endif %}
+        </div>
+        <div class="prompt-box">{{ negative_prompt or 'Negative prompt otomatis akan muncul di sini.' }}</div>
+
+        {% if generated_prompt %}
+            <form method="post" action="{{ url_for('generator_save') }}" class="form save-generated">
+                <input type="hidden" name="main_prompt" value="{{ generated_prompt }}">
+                <input type="hidden" name="negative_prompt" value="{{ negative_prompt }}">
+                <input type="hidden" name="aspect_ratio" value="{{ form_data.get('aspect_ratio','9:16') }}">
+                <input type="hidden" name="visual_style" value="{{ form_data.get('visual_style','clean commercial') }}">
+                <label>Judul Library
+                    <input name="title" value="Generated {{ form_data.get('product_type','batik') }} {{ form_data.get('content_style','affiliate') }}">
+                </label>
+                <div class="form-grid">
+                    <label>Kategori
+                        <select name="category">
+                            {% for category in categories %}
+                                <option value="{{ category }}" {{ 'selected' if category == 'Video Affiliate' else '' }}>{{ category }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label>Platform
+                        <select name="platform">
+                            {% for platform in platforms %}
+                                <option value="{{ platform }}">{{ platform }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label>Rating
+                        <select name="rating">
+                            {% for value in range(0, 6) %}
+                                <option value="{{ value }}">{{ value }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                </div>
+                <label>Notes
+                    <textarea name="notes" rows="3"></textarea>
+                </label>
+                <button class="btn btn-primary" type="submit">Simpan ke Prompt Library</button>
+            </form>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

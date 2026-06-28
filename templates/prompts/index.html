@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Prompt Library - PromptVault{% endblock %}
+{% block content %}
+<header class="page-header">
+    <div>
+        <h1>Prompt Library</h1>
+        <p>Simpan, cari, nilai, dan gunakan ulang prompt marketing.</p>
+    </div>
+    <a class="btn btn-primary" href="{{ url_for('prompt_new') }}">Tambah Prompt</a>
+</header>
+
+<form class="filter-bar" method="get">
+    <input type="search" name="q" value="{{ search }}" placeholder="Cari judul, kategori, platform">
+    <select name="category">
+        <option value="">Semua kategori</option>
+        {% for category in categories %}
+            <option value="{{ category }}" {{ 'selected' if selected_category == category else '' }}>{{ category }}</option>
+        {% endfor %}
+    </select>
+    <select name="platform">
+        <option value="">Semua platform</option>
+        {% for platform in platforms %}
+            <option value="{{ platform }}" {{ 'selected' if selected_platform == platform else '' }}>{{ platform }}</option>
+        {% endfor %}
+    </select>
+    <button class="btn btn-secondary" type="submit">Filter</button>
+</form>
+
+<section class="card">
+    {% if prompts %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Judul</th>
+                        <th>Kategori</th>
+                        <th>Platform</th>
+                        <th>Rating</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for prompt in prompts %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('prompt_detail', id=prompt.id) }}">{{ prompt.title }}</a>
+                                <small>{{ prompt.visual_style or 'Tanpa visual style' }}</small>
+                            </td>
+                            <td><span class="badge">{{ prompt.category }}</span></td>
+                            <td><span class="badge badge-muted">{{ prompt.platform }}</span></td>
+                            <td>{{ prompt.rating }}/5</td>
+                            <td class="row-actions">
+                                <button class="btn btn-small btn-secondary" data-copy="{{ prompt.main_prompt|e }}">Copy Main</button>
+                                {% if prompt.negative_prompt %}
+                                    <button class="btn btn-small btn-secondary" data-copy="{{ prompt.negative_prompt|e }}">Copy Negative</button>
+                                {% endif %}
+                                <a class="btn btn-small btn-secondary" href="{{ url_for('prompt_edit', id=prompt.id) }}">Edit</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="empty">Prompt belum ditemukan. Tambahkan prompt pertama atau ubah filter.</div>
+    {% endif %}
+</section>
+{% endblock %}

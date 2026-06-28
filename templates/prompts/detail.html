@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ prompt.title }} - PromptVault{% endblock %}
+{% block content %}
+<header class="page-header">
+    <div>
+        <h1>{{ prompt.title }}</h1>
+        <p>{{ prompt.category }} · {{ prompt.platform }} · Rating {{ prompt.rating }}/5</p>
+    </div>
+    <div class="actions">
+        <a class="btn btn-secondary" href="{{ url_for('prompt_edit', id=prompt.id) }}">Edit</a>
+        <form method="post" action="{{ url_for('prompt_delete', id=prompt.id) }}" data-confirm="Hapus prompt ini?">
+            <button class="btn btn-danger" type="submit">Delete</button>
+        </form>
+    </div>
+</header>
+
+<section class="two-column detail-columns">
+    <article class="card">
+        <div class="section-head">
+            <h2>Main Prompt</h2>
+            <button class="btn btn-small btn-secondary" data-copy="{{ prompt.main_prompt|e }}">Copy</button>
+        </div>
+        <div class="prompt-box">{{ prompt.main_prompt }}</div>
+    </article>
+    <article class="card">
+        <div class="section-head">
+            <h2>Negative Prompt</h2>
+            {% if prompt.negative_prompt %}<button class="btn btn-small btn-secondary" data-copy="{{ prompt.negative_prompt|e }}">Copy</button>{% endif %}
+        </div>
+        <div class="prompt-box">{{ prompt.negative_prompt or 'Tidak ada negative prompt.' }}</div>
+    </article>
+</section>
+
+<section class="card metadata">
+    <span><strong>Aspect Ratio</strong>{{ prompt.aspect_ratio or '-' }}</span>
+    <span><strong>Visual Style</strong>{{ prompt.visual_style or '-' }}</span>
+    <span><strong>Updated</strong>{{ prompt.updated_at.strftime('%d %b %Y') }}</span>
+</section>
+
+<section class="card">
+    <h2>Catatan Hasil</h2>
+    <p class="notes">{{ prompt.notes or 'Belum ada catatan.' }}</p>
+</section>
+{% endblock %}

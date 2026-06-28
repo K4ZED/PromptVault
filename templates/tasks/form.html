@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit Task' if task else 'Tambah Task' }} - PromptVault{% endblock %}
+{% block content %}
+<header class="page-header">
+    <div>
+        <h1>{{ 'Edit Task' if task else 'Tambah Task' }}</h1>
+        <p>Hubungkan task dengan prompt dan pantau status produksi.</p>
+    </div>
+</header>
+
+<form method="post" class="card form wide-form">
+    <label>Judul Task
+        <input name="title" value="{{ task.title if task else '' }}" required>
+    </label>
+    <div class="form-grid">
+        <label>Prompt Opsional
+            <select name="prompt_id">
+                <option value="">Tanpa prompt</option>
+                {% for prompt in prompts %}
+                    <option value="{{ prompt.id }}" {{ 'selected' if task and task.prompt_id == prompt.id else '' }}>{{ prompt.title }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Content Type
+            <select name="content_type">
+                {% for content_type in content_types %}
+                    <option value="{{ content_type }}" {{ 'selected' if task and task.content_type == content_type else '' }}>{{ content_type }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Status
+            <select name="status">
+                {% for status in statuses %}
+                    <option value="{{ status }}" {{ 'selected' if task and task.status == status else '' }}>{{ status }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Due Date
+            <input type="date" name="due_date" value="{{ task.due_date.isoformat() if task and task.due_date else '' }}">
+        </label>
+        <label>Platform
+            <select name="platform">
+                {% for platform in platforms %}
+                    <option value="{{ platform }}" {{ 'selected' if task and task.platform == platform else '' }}>{{ platform }}</option>
+                {% endfor %}
+            </select>
+        </label>
+    </div>
+    <label>Notes
+        <textarea name="notes" rows="5">{{ task.notes if task else '' }}</textarea>
+    </label>
+    <div class="actions">
+        <button class="btn btn-primary" type="submit">{{ 'Simpan Perubahan' if task else 'Tambah Task' }}</button>
+        <a class="btn btn-secondary" href="{{ url_for('tasks_index') }}">Batal</a>
+    </div>
+</form>
+{% endblock %}

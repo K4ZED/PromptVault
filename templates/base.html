@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}PromptVault{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% if current_user.is_authenticated %}
+        <aside class="sidebar">
+            <a class="logo" href="{{ url_for('dashboard') }}">PromptVault</a>
+            <nav class="nav">
+                <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint == 'dashboard' else '' }}">Dashboard</a>
+                <a href="{{ url_for('prompts_index') }}" class="{{ 'active' if request.endpoint in ['prompts_index', 'prompt_new', 'prompt_edit', 'prompt_detail'] else '' }}">Prompt Library</a>
+                <a href="{{ url_for('generator') }}" class="{{ 'active' if request.endpoint == 'generator' else '' }}">Prompt Generator</a>
+                <a href="{{ url_for('tasks_index') }}" class="{{ 'active' if request.endpoint in ['tasks_index', 'task_new', 'task_edit'] else '' }}">Content Tasks</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </nav>
+            <div class="user-box">
+                <span>{{ current_user.username }}</span>
+                <small>{{ current_user.email }}</small>
+            </div>
+        </aside>
+        <main class="main">
+            <div class="mobile-topbar">
+                <a class="logo" href="{{ url_for('dashboard') }}">PromptVault</a>
+                <a class="btn btn-secondary" href="{{ url_for('logout') }}">Logout</a>
+            </div>
+            {% include "_flash.html" ignore missing %}
+            {% block content %}{% endblock %}
+        </main>
+    {% else %}
+        <main class="auth-shell">
+            {% include "_flash.html" ignore missing %}
+            {% block auth_content %}{% endblock %}
+        </main>
+    {% endif %}
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

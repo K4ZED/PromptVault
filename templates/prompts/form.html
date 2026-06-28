@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit Prompt' if prompt else 'Tambah Prompt' }} - PromptVault{% endblock %}
+{% block content %}
+<header class="page-header">
+    <div>
+        <h1>{{ 'Edit Prompt' if prompt else 'Tambah Prompt' }}</h1>
+        <p>Isi prompt utama, negative prompt, rating, dan catatan hasil.</p>
+    </div>
+</header>
+
+<form method="post" class="card form wide-form">
+    <label>Judul
+        <input name="title" value="{{ prompt.title if prompt else '' }}" required>
+    </label>
+    <div class="form-grid">
+        <label>Kategori
+            <select name="category">
+                {% for category in categories %}
+                    <option value="{{ category }}" {{ 'selected' if prompt and prompt.category == category else '' }}>{{ category }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Platform
+            <select name="platform">
+                {% for platform in platforms %}
+                    <option value="{{ platform }}" {{ 'selected' if prompt and prompt.platform == platform else '' }}>{{ platform }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Aspect Ratio
+            <input name="aspect_ratio" value="{{ prompt.aspect_ratio if prompt else '' }}" placeholder="9:16">
+        </label>
+        <label>Visual Style
+            <input name="visual_style" value="{{ prompt.visual_style if prompt else '' }}" placeholder="clean commercial">
+        </label>
+        <label>Rating
+            <select name="rating">
+                {% for value in range(0, 6) %}
+                    <option value="{{ value }}" {{ 'selected' if prompt and prompt.rating == value else '' }}>{{ value }}</option>
+                {% endfor %}
+            </select>
+        </label>
+    </div>
+    <label>Main Prompt
+        <textarea name="main_prompt" rows="9" required>{{ prompt.main_prompt if prompt else '' }}</textarea>
+    </label>
+    <label>Negative Prompt
+        <textarea name="negative_prompt" rows="5">{{ prompt.negative_prompt if prompt else '' }}</textarea>
+    </label>
+    <label>Catatan Hasil
+        <textarea name="notes" rows="4">{{ prompt.notes if prompt else '' }}</textarea>
+    </label>
+    <div class="actions">
+        <button class="btn btn-primary" type="submit">{{ 'Simpan Perubahan' if prompt else 'Tambah Prompt' }}</button>
+        <a class="btn btn-secondary" href="{{ url_for('prompts_index') }}">Batal</a>
+    </div>
+</form>
+{% endblock %}

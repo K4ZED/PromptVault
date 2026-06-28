@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Register - PromptVault{% endblock %}
+{% block auth_content %}
+<section class="auth-card">
+    <div class="auth-heading">
+        <h1>Buat akun</h1>
+        <p>Mulai simpan prompt dan task produksi konten.</p>
+    </div>
+    <form method="post" class="form">
+        <label>Username
+            <input type="text" name="username" required autocomplete="username">
+        </label>
+        <label>Email
+            <input type="email" name="email" required autocomplete="email">
+        </label>
+        <label>Password
+            <input type="password" name="password" required minlength="6" autocomplete="new-password">
+        </label>
+        <label>Konfirmasi Password
+            <input type="password" name="confirm_password" required minlength="6" autocomplete="new-password">
+        </label>
+        <button class="btn btn-primary full" type="submit">Register</button>
+    </form>
+    <p class="auth-link">Sudah punya akun? <a href="{{ url_for('login') }}">Login</a></p>
+</section>
+{% endblock %}

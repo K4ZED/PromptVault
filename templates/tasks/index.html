@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Content Tasks - PromptVault{% endblock %}
+{% block content %}
+<header class="page-header">
+    <div>
+        <h1>Content Tasks</h1>
+        <p>Lacak status produksi konten dari ide sampai upload.</p>
+    </div>
+    <a class="btn btn-primary" href="{{ url_for('task_new') }}">Tambah Task</a>
+</header>
+
+<form class="filter-bar" method="get">
+    <select name="status">
+        <option value="">Semua status</option>
+        {% for status in statuses %}
+            <option value="{{ status }}" {{ 'selected' if selected_status == status else '' }}>{{ status }}</option>
+        {% endfor %}
+    </select>
+    <button class="btn btn-secondary" type="submit">Filter</button>
+</form>
+
+<section class="card">
+    {% if tasks %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Task</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Platform</th>
+                        <th>Due</th>
+                        <th>Prompt</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in tasks %}
+                        <tr>
+                            <td>{{ task.title }}<small>{{ task.notes or '' }}</small></td>
+                            <td>{{ task.content_type }}</td>
+                            <td><span class="badge status-{{ task.status|lower|replace(' ', '-') }}">{{ task.status }}</span></td>
+                            <td>{{ task.platform }}</td>
+                            <td>{{ task.due_date.strftime('%d %b %Y') if task.due_date else '-' }}</td>
+                            <td>{{ task.prompt.title if task.prompt else '-' }}</td>
+                            <td class="row-actions">
+                                <a class="btn btn-small btn-secondary" href="{{ url_for('task_edit', id=task.id) }}">Edit</a>
+                                <form method="post" action="{{ url_for('task_delete', id=task.id) }}" data-confirm="Hapus task ini?">
+                                    <button class="btn btn-small btn-danger" type="submit">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="empty">Belum ada task produksi konten.</div>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,4 +1,16 @@
 document.addEventListener("click", async (event) => {
+  const addScriptButton = event.target.closest("[data-add-script-segment]");
+  if (addScriptButton) {
+    addScriptSegment();
+    return;
+  }
+
+  const removeScriptButton = event.target.closest("[data-remove-script-segment]");
+  if (removeScriptButton) {
+    removeScriptSegment(removeScriptButton);
+    return;
+  }
+
   const copyButton = event.target.closest("[data-copy]");
   if (!copyButton) return;
 
@@ -137,10 +149,102 @@ function updateGeneratorDomainFields() {
   updateGeneratorItemType();
 }
 
-document.addEventListener("DOMContentLoaded", updateGeneratorDomainFields);
+function setGeneratorTalentDefault() {
+  const domainSelect = document.querySelector('select[name="product_domain"]');
+  const talentSelect = document.querySelector('select[name="model_type"]');
+  if (!domainSelect || !talentSelect) return;
+
+  const defaults = {
+    "Batik Fashion": "female_influencer",
+    "Gadget Product": "tech_reviewer",
+    "Gadget Service": "technician",
+  };
+  talentSelect.value = defaults[domainSelect.value] || "female_influencer";
+}
+
+function updateGeneratorScriptFields() {
+  const deliverySelect = document.querySelector('select[name="delivery_mode"]');
+  const scriptFields = document.querySelector("[data-script-fields]");
+  if (!deliverySelect || !scriptFields) return;
+
+  const shouldShow = deliverySelect.value === "talking_script";
+  scriptFields.hidden = !shouldShow;
+  scriptFields.style.display = shouldShow ? "" : "none";
+}
+
+function addScriptSegment() {
+  const container = document.querySelector("[data-script-segments]");
+  const countInput = document.querySelector("[data-script-segment-count]");
+  if (!container || !countInput) return;
+
+  const nextIndex = container.querySelectorAll("[data-script-segment]").length + 1;
+  const segment = document.createElement("div");
+  segment.className = "script-segment";
+  segment.dataset.scriptSegment = "";
+  segment.innerHTML = `
+    <label data-script-time-label>Time ${nextIndex}
+      <input name="script_time_${nextIndex}" placeholder="0:15-0:20">
+    </label>
+    <label data-script-line-label>Line ${nextIndex}
+      <input name="script_line_${nextIndex}" placeholder="Tambahkan kalimat berikutnya...">
+    </label>
+    <button class="btn btn-small btn-danger script-remove" type="button" data-remove-script-segment>Hapus</button>
+  `;
+  container.append(segment);
+  reindexScriptSegments();
+  segment.querySelector("input").focus();
+}
+
+function removeScriptSegment(button) {
+  const container = document.querySelector("[data-script-segments]");
+  const segment = button.closest("[data-script-segment]");
+  if (!container || !segment) return;
+
+  const segments = container.querySelectorAll("[data-script-segment]");
+  if (segments.length <= 1) {
+    segment.querySelectorAll("input").forEach((input) => {
+      input.value = "";
+    });
+    return;
+  }
+
+  segment.remove();
+  reindexScriptSegments();
+}
+
+function reindexScriptSegments() {
+  const container = document.querySelector("[data-script-segments]");
+  const countInput = document.querySelector("[data-script-segment-count]");
+  if (!container || !countInput) return;
+
+  const segments = container.querySelectorAll("[data-script-segment]");
+  segments.forEach((segment, index) => {
+    const displayIndex = index + 1;
+    const timeLabel = segment.querySelector("[data-script-time-label]");
+    const lineLabel = segment.querySelector("[data-script-line-label]");
+    const timeInput = segment.querySelector('input[name^="script_time_"]');
+    const lineInput = segment.querySelector('input[name^="script_line_"]');
+
+    if (timeLabel) timeLabel.firstChild.textContent = `Time ${displayIndex}`;
+    if (lineLabel) lineLabel.firstChild.textContent = `Line ${displayIndex}`;
+    if (timeInput) timeInput.name = `script_time_${displayIndex}`;
+    if (lineInput) lineInput.name = `script_line_${displayIndex}`;
+  });
+  countInput.value = String(segments.length);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  updateGeneratorDomainFields();
+  updateGeneratorScriptFields();
+  reindexScriptSegments();
+});
 document.addEventListener("change", (event) => {
   if (event.target.matches('select[name="product_domain"]')) {
     updateGeneratorDomainFields();
+    setGeneratorTalentDefault();
+  }
+  if (event.target.matches('select[name="delivery_mode"]')) {
+    updateGeneratorScriptFields();
   }
   if (event.target.matches("#generator-item-type")) {
     syncGeneratorHiddenFields();

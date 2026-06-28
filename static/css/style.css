@@ -235,6 +235,30 @@ textarea {
   gap: 12px;
 }
 
+.compact-head {
+  margin-bottom: 12px;
+}
+
+.compact-head legend {
+  padding: 0;
+}
+
+.script-segments {
+  display: grid;
+  gap: 12px;
+}
+
+.script-segment {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.3fr) minmax(220px, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.script-remove {
+  margin-bottom: 0;
+}
+
 .top-space {
   margin-top: 22px;
 }
@@ -573,6 +597,10 @@ tr:last-child td {
 
   .stats-grid,
   .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .script-segment {
     grid-template-columns: 1fr;
   }
 

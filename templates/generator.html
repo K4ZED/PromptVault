@@ -11,7 +11,6 @@
 <section class="two-column generator-grid">
     <form method="post" class="card form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="hidden" name="model_type" value="{{ form_data.get('model_type', 'none') }}">
         <input type="hidden" name="framing" value="{{ form_data.get('framing', 'medium to close-up') }}">
         <input type="hidden" name="camera_movement" value="{{ form_data.get('camera_movement', 'slow push-in') }}">
         <input type="hidden" name="lighting" value="{{ form_data.get('lighting', 'soft warm natural light') }}">
@@ -41,11 +40,41 @@
                     {% endfor %}
                 </select>
             </label>
+            <label>Content Intent
+                <select name="promotion_intent">
+                    <option value="affiliate" {{ 'selected' if form_data.get('promotion_intent', 'affiliate') == 'affiliate' else '' }}>Affiliate / selling</option>
+                    <option value="semi_affiliate" {{ 'selected' if form_data.get('promotion_intent') == 'semi_affiliate' else '' }}>Semi affiliate / soft sell</option>
+                    <option value="showcase_only" {{ 'selected' if form_data.get('promotion_intent') == 'showcase_only' else '' }}>Showcase only / no selling</option>
+                </select>
+            </label>
+            <label>Influencer / Talent
+                <select name="model_type">
+                    {% for value, label in [
+                        ('female_influencer', 'Female influencer'),
+                        ('male_influencer', 'Male influencer'),
+                        ('couple_influencers', 'Couple influencers'),
+                        ('hand_model', 'Hand model'),
+                        ('tech_reviewer', 'Tech reviewer'),
+                        ('technician', 'Technician'),
+                        ('customer', 'Customer testimonial'),
+                        ('none', 'No talent')
+                    ] %}
+                        <option value="{{ value }}" {{ 'selected' if form_data.get('model_type', 'female_influencer') == value else '' }}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
             <label>Item / Service Type
                 <select id="generator-item-type" data-selected="{{ form_data.get('service_type') or form_data.get('gadget_type') or form_data.get('product_type') or '' }}"></select>
             </label>
             <label>Item Detail
                 <input id="generator-item-detail" value="{{ form_data.get('custom_service') or form_data.get('custom_gadget') or form_data.get('custom_product') or '' }}" placeholder="example: iPhone 13 Pro, MacBook M1, premium batik shirt, Face ID repair">
+            </label>
+            <label data-domain-field="Batik Fashion">Fashion Display
+                <select name="wear_mode">
+                    <option value="auto" {{ 'selected' if form_data.get('wear_mode', 'auto') == 'auto' else '' }}>Auto based on talent</option>
+                    <option value="worn_by_talent" {{ 'selected' if form_data.get('wear_mode') == 'worn_by_talent' else '' }}>Worn by talent</option>
+                    <option value="not_worn_product_display" {{ 'selected' if form_data.get('wear_mode') == 'not_worn_product_display' else '' }}>Not worn, product display only</option>
+                </select>
             </label>
             <label data-domain-field="Gadget Product,Gadget Service">Gadget Brand
                 <select name="gadget_brand">
@@ -102,6 +131,37 @@
                 </select>
             </label>
         </div>
+
+        <div class="form-grid">
+            <label>Delivery Mode
+                <select name="delivery_mode">
+                    <option value="silent_showcase" {{ 'selected' if form_data.get('delivery_mode', 'silent_showcase') == 'silent_showcase' else '' }}>Silent product showcase</option>
+                    <option value="talking_script" {{ 'selected' if form_data.get('delivery_mode') == 'talking_script' else '' }}>Influencer talking with script</option>
+                </select>
+            </label>
+        </div>
+
+        <fieldset class="field-group" data-script-fields>
+            <div class="section-head compact-head">
+                <legend>Talking Script Timeline</legend>
+                <button class="btn btn-small btn-secondary" type="button" data-add-script-segment>+</button>
+            </div>
+            <div class="script-segments" data-script-segments>
+                {% set script_count = form_data.get('script_segment_count', '3')|int %}
+                {% for index in range(1, script_count + 1) %}
+                    <div class="script-segment" data-script-segment>
+                        <label data-script-time-label>Time {{ index }}
+                            <input name="script_time_{{ index }}" value="{{ form_data.get('script_time_' ~ index, ['0:00-0:06', '0:06-0:12', '0:12-0:15'][index - 1] if index <= 3 else '') }}" placeholder="0:00-0:06">
+                        </label>
+                        <label data-script-line-label>Line {{ index }}
+                            <input name="script_line_{{ index }}" value="{{ form_data.get('script_line_' ~ index,'') }}" placeholder="{{ ['Halo semuanya, kali ini aku mau promosikan...', 'Yang aku suka dari produk ini adalah...', 'Kalau kamu tertarik, cek sekarang ya.'][index - 1] if index <= 3 else 'Tambahkan kalimat berikutnya...' }}">
+                        </label>
+                        <button class="btn btn-small btn-danger script-remove" type="button" data-remove-script-segment>Hapus</button>
+                    </div>
+                {% endfor %}
+            </div>
+            <input type="hidden" name="script_segment_count" value="{{ script_count }}" data-script-segment-count>
+        </fieldset>
 
         <label>Opening Visual Hook
             <input name="hook" value="{{ form_data.get('hook','') }}" placeholder="example: close-up of batik texture, iPhone camera module, or repair before-after">

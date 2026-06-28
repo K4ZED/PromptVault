@@ -43,7 +43,16 @@ ASPECT_RATIOS = ["9:16", "1:1", "16:9", "4:5", "3:4"]
 VISUAL_STYLES = ["realistic", "premium fashion", "clean commercial", "documentary style"]
 GENERATOR_OUTPUT_TYPES = ["Video Affiliate", "Image Prompt", "Image to Video", "Product Photo", "Service Ad"]
 GENERATOR_PRODUCT_DOMAINS = ["Batik Fashion", "Gadget Product", "Gadget Service"]
-GENERATOR_MODEL_TYPES = ["female", "male", "couple", "none"]
+GENERATOR_MODEL_TYPES = [
+    "female_influencer",
+    "male_influencer",
+    "couple_influencers",
+    "hand_model",
+    "tech_reviewer",
+    "technician",
+    "customer",
+    "none",
+]
 GENERATOR_PRODUCT_TYPES = ["kemeja batik", "blouse batik", "dress batik", "outer batik", "kain batik", "custom"]
 GENERATOR_GADGET_TYPES = ["iPhone", "iPad", "MacBook", "Apple Watch", "AirPods", "Android phone", "Android tablet", "Windows laptop", "custom"]
 GENERATOR_GADGET_BRANDS = ["Apple", "Samsung", "Xiaomi", "OPPO", "vivo", "ASUS", "Lenovo", "HP", "Dell", "Other"]
@@ -60,6 +69,9 @@ GENERATOR_SERVICE_TYPES = [
     "custom",
 ]
 GENERATOR_GADGET_CONDITIONS = ["brand new", "like new", "pre-owned excellent condition", "minor wear", "damaged before repair", "after repair"]
+GENERATOR_DELIVERY_MODES = ["silent_showcase", "talking_script"]
+GENERATOR_PROMOTION_INTENTS = ["affiliate", "semi_affiliate", "showcase_only"]
+GENERATOR_WEAR_MODES = ["worn_by_talent", "not_worn_product_display", "auto"]
 GENERATOR_LOCATIONS = ["studio", "living room", "outdoor", "boutique", "office", "custom"]
 GENERATOR_PLACE_REFERENCES = [
     "minimalist warm studio",
@@ -307,48 +319,92 @@ def reset_old_tasks_for_current_user(show_flash=False):
 
 def build_generated_prompt(form):
     model_labels = {
-        "female": "an adult female model with a confident, natural expression",
-        "male": "an adult male model with a confident, natural expression",
-        "couple": "an adult couple styled naturally and confidently",
+        "female_influencer": "an adult female influencer with a confident, friendly, natural on-camera presence",
+        "male_influencer": "an adult male influencer with a confident, friendly, natural on-camera presence",
+        "couple_influencers": "a stylish adult couple acting as lifestyle influencers with natural chemistry",
+        "hand_model": "a clean hand model presenting the product with careful, premium hand movements",
+        "tech_reviewer": "a trustworthy tech reviewer presenting the device naturally, as if making a short social commerce review",
+        "technician": "a professional technician demonstrating the service process with clean, careful, trustworthy handling",
+        "customer": "a satisfied customer receiving or testing the product/service with a natural testimonial expression",
         "none": "the product or service result as the main subject without a human model",
     }
     output_type = choice_or_default(form.get("output_type"), GENERATOR_OUTPUT_TYPES, "Video Affiliate")
     product_domain = choice_or_default(form.get("product_domain"), GENERATOR_PRODUCT_DOMAINS, "Batik Fashion")
+    promotion_intent = choice_or_default(form.get("promotion_intent"), GENERATOR_PROMOTION_INTENTS, "affiliate")
+    wear_mode = choice_or_default(form.get("wear_mode"), GENERATOR_WEAR_MODES, "auto")
     product_type = choice_or_default(form.get("product_type"), GENERATOR_PRODUCT_TYPES, "kemeja batik")
     gadget_type = choice_or_default(form.get("gadget_type"), GENERATOR_GADGET_TYPES, "iPhone")
     gadget_brand = choice_or_default(form.get("gadget_brand"), GENERATOR_GADGET_BRANDS, "Apple")
     service_type = choice_or_default(form.get("service_type"), GENERATOR_SERVICE_TYPES, "screen replacement")
     gadget_condition = choice_or_default(form.get("gadget_condition"), GENERATOR_GADGET_CONDITIONS, "like new")
+    custom_product = clean_text(form.get("custom_product"), 120)
+    custom_gadget = clean_text(form.get("custom_gadget"), 120)
     custom_service = clean_text(form.get("custom_service"), 100)
+    model_type_default = {
+        "Batik Fashion": "female_influencer",
+        "Gadget Product": "tech_reviewer",
+        "Gadget Service": "technician",
+    }.get(product_domain, "female_influencer")
+    model_type = choice_or_default(form.get("model_type"), GENERATOR_MODEL_TYPES, model_type_default)
+    model_text = model_labels.get(model_type, model_labels[model_type_default])
+    intent_labels = {
+        "affiliate": "direct affiliate sales creative",
+        "semi_affiliate": "soft-sell semi-affiliate creative",
+        "showcase_only": "non-selling product showcase",
+    }
+    intent_direction = {
+        "affiliate": "Make the content persuasive and conversion-focused, clearly highlighting benefits and encouraging interest without using text overlays.",
+        "semi_affiliate": "Make the content feel like a soft recommendation: informative, natural, lightly persuasive, and not too salesy.",
+        "showcase_only": "Do not make it feel like an ad or sales pitch; focus only on aesthetic product presentation, usage context, texture, quality, and realistic details.",
+    }
 
     if product_domain == "Batik Fashion":
         if product_type == "custom":
-            product_subject = clean_text(form.get("custom_product"), 80) or "custom batik product"
+            product_subject = custom_product or "custom batik product"
         else:
             product_subject = GENERATOR_PRODUCT_TRANSLATIONS.get(product_type, product_type)
+            if custom_product:
+                product_subject = f"{product_subject} ({custom_product})"
         campaign_subject = "batik fashion affiliate/product campaign"
-        subject_sentence = f"Feature {model_labels.get(choice_or_default(form.get('model_type'), GENERATOR_MODEL_TYPES, 'female'))} wearing or presenting a {product_subject}"
+        if wear_mode == "not_worn_product_display":
+            subject_sentence = f"Feature {product_subject} as the hero product not worn by anyone, displayed neatly on a hanger, mannequin-free rack, table layout, or clean product stand"
+        elif model_type == "none":
+            subject_sentence = f"Feature {product_subject} as the hero product in a premium fashion setup"
+        else:
+            subject_sentence = f"Feature {model_text} wearing or presenting {product_subject} with natural influencer energy"
         preservation_sentence = "For image-to-video, preserve the same face identity, garment shape, batik motif, fabric texture, and product color from the first frame to the final frame."
         product_photo_sentence = "Treat the product as the hero object, make the fabric surface and silhouette clearly visible, and avoid adding a talent unless explicitly needed."
     elif product_domain == "Gadget Product":
         if gadget_type == "custom":
-            gadget_label = clean_text(form.get("custom_gadget"), 100) or "custom gadget"
+            gadget_label = custom_gadget or "custom gadget"
         else:
             gadget_label = gadget_type
+            if custom_gadget:
+                gadget_label = f"{gadget_label} ({custom_gadget})"
         product_subject = f"{gadget_brand} {gadget_label}" if gadget_brand != "Other" else gadget_label
         campaign_subject = "gadget product affiliate/product campaign"
-        subject_sentence = f"Feature {product_subject} in {gadget_condition} condition as the hero product"
+        if model_type == "none":
+            subject_sentence = f"Feature {product_subject} in {gadget_condition} condition as the hero product"
+        else:
+            subject_sentence = f"Feature {model_text} showcasing {product_subject} in {gadget_condition} condition"
         preservation_sentence = "For image-to-video, preserve the exact device shape, screen content style, camera layout, frame color, ports, and accessory placement from the first frame to the final frame."
         product_photo_sentence = "Treat the gadget as the hero object, make the screen, frame, camera module, buttons, ports, and accessories clearly visible, and avoid adding hands unless explicitly needed."
     else:
         if gadget_type == "custom":
-            gadget_label = clean_text(form.get("custom_gadget"), 100) or "customer gadget"
+            gadget_label = custom_gadget or "customer gadget"
         else:
             gadget_label = gadget_type
-        service_label = custom_service if service_type == "custom" and custom_service else service_type
+            if custom_gadget:
+                gadget_label = f"{gadget_label} ({custom_gadget})"
+        service_label = service_type
+        if custom_service:
+            service_label = f"{service_label} ({custom_service})"
         product_subject = f"{service_label} for {gadget_brand} {gadget_label}" if gadget_brand != "Other" else f"{service_label} for {gadget_label}"
         campaign_subject = "gadget repair and service campaign"
-        subject_sentence = f"Show a trustworthy {product_subject} service scenario with a clean before-and-after result"
+        if model_type == "none":
+            subject_sentence = f"Show a trustworthy {product_subject} service scenario with a clean before-and-after result"
+        else:
+            subject_sentence = f"Feature {model_text} in a trustworthy {product_subject} service scenario with a clean before-and-after result"
         preservation_sentence = "For image-to-video, preserve the exact device shape, repair context, tool placement, screen condition, and before-after continuity from the first frame to the final frame."
         product_photo_sentence = "Treat the repaired device and service result as the hero object, making the issue, repair quality, and final working condition visually clear."
 
@@ -365,9 +421,6 @@ def build_generated_prompt(form):
     else:
         place_reference_text = GENERATOR_PLACE_REFERENCE_DETAILS.get(place_reference, place_reference)
 
-    model_type_default = "female" if product_domain == "Batik Fashion" else "none"
-    model_type = choice_or_default(form.get("model_type"), GENERATOR_MODEL_TYPES, model_type_default)
-    model_text = model_labels.get(model_type, model_labels["female"])
     content_style = choice_or_default(form.get("content_style"), GENERATOR_CONTENT_STYLES, "affiliate")
     camera_movement = choice_or_default(form.get("camera_movement"), GENERATOR_CAMERA_MOVEMENTS, "slow push-in")
     duration = choice_or_default(form.get("duration"), GENERATOR_DURATIONS, "15s")
@@ -391,8 +444,22 @@ def build_generated_prompt(form):
     additional_instruction = clean_text(form.get("additional_instruction"), 500)
     hook = clean_text(form.get("hook"), 180)
     cta = clean_text(form.get("cta"), 160)
+    delivery_mode = choice_or_default(form.get("delivery_mode"), GENERATOR_DELIVERY_MODES, "silent_showcase")
+    script_segments = []
+    script_indexes = sorted(
+        {
+            int(key.rsplit("_", 1)[1])
+            for key in form.keys()
+            if key.startswith("script_time_") and key.rsplit("_", 1)[1].isdigit()
+        }
+    )
+    for index in script_indexes:
+        time_range = clean_text(form.get(f"script_time_{index}"), 24)
+        line = clean_text(form.get(f"script_line_{index}"), 240)
+        if time_range and line:
+            script_segments.append(f'{time_range} "{line}"')
 
-    objective = f"Create a {output_type.lower()} for a {campaign_subject} in a {content_style} style, aspect ratio {aspect_ratio}"
+    objective = f"Create a {output_type.lower()} for a {intent_labels[promotion_intent]} in a {campaign_subject}, {content_style} style, aspect ratio {aspect_ratio}"
     if output_type != "Image Prompt" and output_type != "Product Photo":
         objective += f", duration {duration}"
     objective += "."
@@ -403,12 +470,28 @@ def build_generated_prompt(form):
 
     prompt_parts = [
         objective,
-        f"{subject_sentence}, with a {mood} mood and a polished but believable styling direction.",
+        f"{subject_sentence}, with a {mood} mood, natural micro-expressions, realistic pacing, and a polished but believable styling direction.",
         f"Set the scene in a {location}, using the place reference: {place_reference_text}.",
-        f"Use {lighting}, warm natural color tones, a tidy background, and a professional {quality_level} finish.",
-        f"{movement_sentence}, keeping the product readable, centered when needed, and visually dominant throughout the frame.",
-        f"The main action is {model_action}, with clear attention to {detail_text}.",
+        f"Use {lighting}, warm natural color tones, clean composition, subtle depth, soft shadows, and a professional {quality_level} finish.",
+        f"{movement_sentence}, with stable cinematic motion, no awkward zooms, and product details staying sharp, readable, and visually dominant throughout the frame.",
+        f"The main action is {model_action}, performed naturally like a real creator shot, with clear attention to {detail_text}.",
+        intent_direction[promotion_intent],
     ]
+    if delivery_mode == "talking_script":
+        if script_segments:
+            prompt_parts.append(
+                "The talent speaks directly to camera with clean lip-sync, natural Indonesian delivery, friendly pacing, and this exact timeline script: "
+                + "; ".join(script_segments)
+                + "."
+            )
+        else:
+            prompt_parts.append(
+                "The talent speaks directly to camera with clean lip-sync, natural Indonesian delivery, and friendly pacing while explaining the product/service benefits."
+            )
+    else:
+        prompt_parts.append(
+            "Silent product showcase mode: no talking, no dialogue, no lip movement, no voice-over; communicate everything through visuals, gestures, product handling, and clean camera movement."
+        )
     if hook:
         prompt_parts.append(f"Opening visual hook: {hook}.")
     if selling_point:
@@ -419,7 +502,10 @@ def build_generated_prompt(form):
         prompt_parts.append(preservation_sentence)
     if output_type == "Product Photo":
         prompt_parts.append(product_photo_sentence)
-    prompt_parts.append("No text overlay, no logo, no watermark, no neon elements, no glow effects, no gradients.")
+    if promotion_intent == "showcase_only":
+        prompt_parts.append("Make it realistic, premium, calm, observational, brand-safe, and suitable for a polished product visual; no sales gesture, no price cue, no text overlay, no watermark, no neon elements, no glow effects, no gradients.")
+    else:
+        prompt_parts.append("Make it realistic, premium, conversion-aware, brand-safe, and suitable for a polished social commerce ad; no text overlay, no watermark, no neon elements, no glow effects, no gradients.")
     if additional_instruction:
         prompt_parts.append(f"Additional instruction: {additional_instruction}.")
 
@@ -437,6 +523,8 @@ def build_generated_prompt(form):
         "text",
         "logo",
         "watermark",
+        "subtitle text",
+        "caption overlay",
         "neon colors",
         "glow effects",
         "gradient",
@@ -466,10 +554,16 @@ def build_generated_prompt(form):
         ])
     if output_type in ["Video Affiliate", "Image to Video"]:
         negative_items.extend(["jittery motion", "flicker", "heavy motion blur", "face changing between frames"])
+    if delivery_mode == "silent_showcase":
+        negative_items.extend(["talking mouth", "lip movement", "voice-over", "dialogue"])
+    else:
+        negative_items.extend(["bad lip-sync", "mismatched mouth movement", "robotic speech expression"])
     if model_type == "none" or output_type == "Product Photo":
         negative_items.extend(["human model", "human hands entering the frame"])
         if product_domain == "Batik Fashion":
             negative_items.append("broken mannequin")
+    if promotion_intent == "showcase_only":
+        negative_items.extend(["hard selling", "salesy gesture", "price tag focus", "aggressive call to action"])
     negative_prompt = "Negative prompt: avoid " + ", ".join(negative_items) + "."
     prompt = " ".join(prompt_parts + [negative_prompt])
     return prompt, negative_prompt
@@ -797,7 +891,6 @@ def fill_task_from_form(task):
             prompt_id = None
         prompt = Prompt.query.filter_by(id=prompt_id, user_id=current_user.id).first() if prompt_id else None
         task.prompt_id = prompt.id if prompt else None
-    task.title = request.form.get("title", "").strip()
     task.title = clean_text(request.form.get("title"), 160)
     task.content_type = choice_or_default(request.form.get("content_type"), CONTENT_TYPES, "Image")
     task.status = choice_or_default(request.form.get("status"), TASK_STATUSES, "Ide")
@@ -823,6 +916,9 @@ def inject_options():
         "generator_gadget_brands": GENERATOR_GADGET_BRANDS,
         "generator_service_types": GENERATOR_SERVICE_TYPES,
         "generator_gadget_conditions": GENERATOR_GADGET_CONDITIONS,
+        "generator_delivery_modes": GENERATOR_DELIVERY_MODES,
+        "generator_promotion_intents": GENERATOR_PROMOTION_INTENTS,
+        "generator_wear_modes": GENERATOR_WEAR_MODES,
         "generator_locations": GENERATOR_LOCATIONS,
         "generator_place_references": GENERATOR_PLACE_REFERENCES,
         "generator_content_styles": GENERATOR_CONTENT_STYLES,

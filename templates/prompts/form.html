@@ -9,6 +9,7 @@
 </header>
 
 <form method="post" class="card form wide-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label>Judul
         <input name="title" value="{{ prompt.title if prompt else '' }}" required>
     </label>

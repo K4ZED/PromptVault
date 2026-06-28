@@ -9,6 +9,7 @@
     <div class="actions">
         <a class="btn btn-secondary" href="{{ url_for('prompt_edit', id=prompt.id) }}">Edit</a>
         <form method="post" action="{{ url_for('prompt_delete', id=prompt.id) }}" data-confirm="Hapus prompt ini?">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button class="btn btn-danger" type="submit">Delete</button>
         </form>
     </div>

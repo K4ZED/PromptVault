@@ -1,6 +1,10 @@
-from datetime import datetime
+import re
+import secrets
+import time
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from flask import Flask, flash, redirect, render_template, request, url_for
+from flask import Flask, abort, flash, redirect, render_template, request, session, url_for
 from flask_login import LoginManager, current_user, login_required, login_user, logout_user
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -37,6 +41,125 @@ TASK_STATUSES = ["Ide", "Prompt", "Generated", "Revisi", "Selesai", "Uploaded"]
 CONTENT_TYPES = ["Image", "Video", "Image to Video", "Storyboard", "Caption"]
 ASPECT_RATIOS = ["9:16", "1:1", "16:9", "4:5", "3:4"]
 VISUAL_STYLES = ["realistic", "premium fashion", "clean commercial", "documentary style"]
+GENERATOR_OUTPUT_TYPES = ["Video Affiliate", "Image Prompt", "Image to Video", "Product Photo", "Service Ad"]
+GENERATOR_PRODUCT_DOMAINS = ["Batik Fashion", "Gadget Product", "Gadget Service"]
+GENERATOR_MODEL_TYPES = ["female", "male", "couple", "none"]
+GENERATOR_PRODUCT_TYPES = ["kemeja batik", "blouse batik", "dress batik", "outer batik", "kain batik", "custom"]
+GENERATOR_GADGET_TYPES = ["iPhone", "iPad", "MacBook", "Apple Watch", "AirPods", "Android phone", "Android tablet", "Windows laptop", "custom"]
+GENERATOR_GADGET_BRANDS = ["Apple", "Samsung", "Xiaomi", "OPPO", "vivo", "ASUS", "Lenovo", "HP", "Dell", "Other"]
+GENERATOR_SERVICE_TYPES = [
+    "screen replacement",
+    "battery replacement",
+    "camera repair",
+    "speaker or microphone repair",
+    "charging port repair",
+    "software troubleshooting",
+    "data backup and transfer",
+    "cleaning and maintenance",
+    "diagnostic check",
+    "custom",
+]
+GENERATOR_GADGET_CONDITIONS = ["brand new", "like new", "pre-owned excellent condition", "minor wear", "damaged before repair", "after repair"]
+GENERATOR_LOCATIONS = ["studio", "living room", "outdoor", "boutique", "office", "custom"]
+GENERATOR_PLACE_REFERENCES = [
+    "minimalist warm studio",
+    "Jakarta apartment living room",
+    "Yogyakarta heritage boutique",
+    "artisan batik workshop",
+    "modern office lobby",
+    "tropical outdoor walkway",
+    "premium fashion fitting room",
+    "clean marketplace product corner",
+    "Apple-style clean tech desk",
+    "premium gadget showroom",
+    "trusted repair service counter",
+    "technician workbench",
+    "modern phone accessories shop",
+    "resort corridor with natural light",
+    "custom",
+]
+GENERATOR_PLACE_REFERENCE_DETAILS = {
+    "minimalist warm studio": "a minimalist warm-toned studio with neutral walls, simple props, soft shadows, and a clean commercial fashion setup",
+    "Jakarta apartment living room": "a modern Jakarta apartment living room with warm wood furniture, tidy decor, soft window light, and a relatable premium home atmosphere",
+    "Yogyakarta heritage boutique": "a Yogyakarta-inspired heritage boutique with subtle wooden accents, handcrafted decor, muted earthy colors, and an elegant Indonesian fashion retail mood",
+    "artisan batik workshop": "an artisan batik workshop atmosphere with tidy fabric rolls, wooden tables, handcrafted textile details, and a refined behind-the-scenes production feel",
+    "modern office lobby": "a polished modern office lobby with clean lines, muted warm surfaces, natural light, and a professional daily-wear context",
+    "tropical outdoor walkway": "a tropical outdoor walkway with greenery, soft daylight, warm stone or wood textures, and a relaxed lifestyle fashion mood",
+    "premium fashion fitting room": "a premium fashion fitting room with a full-length mirror, warm boutique lighting, clean walls, and a curated styling environment",
+    "clean marketplace product corner": "a clean marketplace product corner with a neutral backdrop, tidy product display, soft shadow, and clear e-commerce product visibility",
+    "Apple-style clean tech desk": "a minimalist Apple-style tech desk with a neutral background, clean surface, soft reflections, tidy cable management, and premium product presentation",
+    "premium gadget showroom": "a premium gadget showroom with clean display tables, warm professional lighting, organized accessories, and a trustworthy retail atmosphere",
+    "trusted repair service counter": "a trusted gadget repair service counter with organized tools, clean documentation, device trays, and a professional customer-service atmosphere",
+    "technician workbench": "a neat technician workbench with precision tools, anti-static mat, soft task lighting, and a credible repair workflow",
+    "modern phone accessories shop": "a modern phone accessories shop with tidy shelves, neutral display lighting, phone cases, chargers, and a clean retail setup",
+    "resort corridor with natural light": "a resort corridor with natural light, warm architectural details, calm premium travel mood, and an elegant lifestyle setting",
+}
+GENERATOR_CONTENT_STYLES = ["affiliate", "cinematic", "casual", "premium", "product showcase", "editorial", "UGC testimonial"]
+GENERATOR_CAMERA_MOVEMENTS = ["static", "slow push-in", "zoom in", "handheld", "orbit", "tracking shot"]
+GENERATOR_DURATIONS = ["6s", "10s", "15s", "30s"]
+GENERATOR_FRAMINGS = ["medium shot", "close-up", "full body", "detail macro", "medium to close-up", "wide establishing shot", "over-the-shoulder shot"]
+GENERATOR_LIGHTINGS = ["soft warm natural light", "clean studio lighting", "window light", "premium boutique lighting", "soft morning light", "controlled commercial lighting"]
+GENERATOR_MOODS = ["confident", "natural and friendly", "elegant", "premium minimal", "warm and relatable", "calm luxury", "fresh daily wear"]
+GENERATOR_ACTIONS = [
+    "adjusting the sleeves while showing the batik pattern",
+    "walking slowly, then stopping and facing the camera",
+    "touching the fabric detail and turning slightly",
+    "posing naturally while showing the garment cut",
+    "keeping the product still with a smooth transition into motif details",
+    "holding the collar and smoothing the front panel",
+    "showing before-and-after styling angles",
+    "placing the product neatly on a hanger or display stand",
+    "showing the product clearly with a clean commercial angle",
+    "rotating the gadget slowly to show the screen, frame, camera, and ports",
+    "showing the device in hand with a clean lifestyle angle",
+    "placing the gadget on a clean desk beside its accessories",
+    "a technician carefully inspecting the device with professional tools",
+    "showing a before-and-after repair result with the device working normally",
+]
+GENERATOR_DETAIL_FOCUS = [
+    "batik motif",
+    "fabric texture",
+    "garment cut",
+    "stitching detail",
+    "body fit",
+    "product color",
+    "collar shape",
+    "sleeve detail",
+    "fabric drape",
+    "screen clarity",
+    "camera module",
+    "device frame",
+    "ports and buttons",
+    "keyboard and trackpad",
+    "accessories",
+    "repair tools",
+    "before-after condition",
+]
+GENERATOR_QUALITY_LEVELS = ["clean commercial", "premium fashion campaign", "high-converting affiliate creative", "realistic marketplace visual", "cinematic social ad"]
+GENERATOR_PRODUCT_TRANSLATIONS = {
+    "kemeja batik": "premium batik shirt",
+    "blouse batik": "premium batik blouse",
+    "dress batik": "premium batik dress",
+    "outer batik": "premium batik outerwear",
+    "kain batik": "batik fabric",
+}
+GENERATOR_DOMAIN_DETAIL_DEFAULTS = {
+    "Batik Fashion": ["batik motif", "fabric texture", "garment cut"],
+    "Gadget Product": ["screen clarity", "device frame", "camera module"],
+    "Gadget Service": ["repair tools", "before-after condition", "ports and buttons"],
+}
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+LOGIN_ATTEMPTS = {}
+LOGIN_LIMIT = 5
+LOGIN_WINDOW_SECONDS = 15 * 60
+
+
+def clean_text(value, max_length):
+    return (value or "").strip()[:max_length]
+
+
+def choice_or_default(value, allowed, default):
+    return value if value in allowed else default
 
 
 def create_app():
@@ -44,6 +167,8 @@ def create_app():
     app.config.from_object(Config)
     if not app.config.get("SQLALCHEMY_DATABASE_URI"):
         raise RuntimeError("DATABASE_URL environment variable is required.")
+    if not app.config.get("SECRET_KEY"):
+        raise RuntimeError("SECRET_KEY environment variable is required.")
 
     db.init_app(app)
 
@@ -56,13 +181,70 @@ def create_app():
     def load_user(user_id):
         return db.session.get(User, int(user_id))
 
-    with app.app_context():
-        db.create_all()
+    @app.before_request
+    def protect_state_changing_requests():
+        if request.method in ("POST", "PUT", "PATCH", "DELETE"):
+            submitted_token = request.form.get("csrf_token") or request.headers.get("X-CSRF-Token")
+            if not submitted_token or not secrets.compare_digest(submitted_token, get_csrf_token()):
+                abort(400)
+
+    @app.after_request
+    def add_security_headers(response):
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self'; "
+            "style-src 'self'; "
+            "img-src 'self' data:; "
+            "font-src 'self'; "
+            "connect-src 'self'; "
+            "frame-ancestors 'none'; "
+            "base-uri 'self'; "
+            "form-action 'self'"
+        )
+        return response
+
+    if app.config.get("AUTO_CREATE_TABLES"):
+        with app.app_context():
+            db.create_all()
 
     return app
 
 
 app = create_app()
+
+
+def get_csrf_token():
+    token = session.get("csrf_token")
+    if not token:
+        token = secrets.token_urlsafe(32)
+        session["csrf_token"] = token
+    return token
+
+
+def login_rate_key():
+    return f"{request.remote_addr or 'unknown'}:{clean_text(request.form.get('email'), 120).lower()}"
+
+
+def login_is_limited():
+    key = login_rate_key()
+    now = time.time()
+    attempts = [ts for ts in LOGIN_ATTEMPTS.get(key, []) if now - ts < LOGIN_WINDOW_SECONDS]
+    LOGIN_ATTEMPTS[key] = attempts
+    return len(attempts) >= LOGIN_LIMIT
+
+
+def record_failed_login():
+    key = login_rate_key()
+    now = time.time()
+    LOGIN_ATTEMPTS[key] = [ts for ts in LOGIN_ATTEMPTS.get(key, []) if now - ts < LOGIN_WINDOW_SECONDS] + [now]
+
+
+def clear_failed_logins():
+    LOGIN_ATTEMPTS.pop(login_rate_key(), None)
 
 
 def parse_due_date(value):
@@ -90,49 +272,206 @@ def task_query_for_user(task_id):
     return ContentTask.query.filter_by(id=task_id, user_id=current_user.id).first_or_404()
 
 
+def get_app_timezone():
+    try:
+        return ZoneInfo(app.config.get("APP_TIMEZONE", "Asia/Jakarta"))
+    except ZoneInfoNotFoundError:
+        return ZoneInfo("UTC")
+
+
+def today_bounds_utc_naive():
+    app_timezone = get_app_timezone()
+    start_local = datetime.now(app_timezone).replace(hour=0, minute=0, second=0, microsecond=0)
+    end_local = start_local + timedelta(days=1)
+    start_utc = start_local.astimezone(timezone.utc).replace(tzinfo=None)
+    end_utc = end_local.astimezone(timezone.utc).replace(tzinfo=None)
+    return start_utc, end_utc
+
+
+def reset_old_tasks_for_current_user(show_flash=False):
+    if not current_user.is_authenticated or not app.config.get("RESET_CONTENT_TASKS_DAILY"):
+        return 0
+
+    today_start_utc, _ = today_bounds_utc_naive()
+    deleted_count = ContentTask.query.filter(
+        ContentTask.user_id == current_user.id,
+        ContentTask.created_at < today_start_utc,
+    ).delete(synchronize_session=False)
+
+    if deleted_count:
+        db.session.commit()
+        if show_flash:
+            flash(f"{deleted_count} task lama sudah di-reset untuk hari ini.", "success")
+    return deleted_count
+
+
 def build_generated_prompt(form):
     model_labels = {
-        "female": "Seorang model wanita dewasa tampil percaya diri",
-        "male": "Seorang model pria dewasa tampil percaya diri",
-        "couple": "Sepasang model dewasa tampil natural dan percaya diri",
-        "none": "Produk batik ditampilkan sebagai fokus utama",
+        "female": "an adult female model with a confident, natural expression",
+        "male": "an adult male model with a confident, natural expression",
+        "couple": "an adult couple styled naturally and confidently",
+        "none": "the product or service result as the main subject without a human model",
     }
-    product_type = form.get("product_type") or "kemeja batik"
-    if product_type == "custom":
-        product_type = form.get("custom_product") or "produk batik custom"
+    output_type = choice_or_default(form.get("output_type"), GENERATOR_OUTPUT_TYPES, "Video Affiliate")
+    product_domain = choice_or_default(form.get("product_domain"), GENERATOR_PRODUCT_DOMAINS, "Batik Fashion")
+    product_type = choice_or_default(form.get("product_type"), GENERATOR_PRODUCT_TYPES, "kemeja batik")
+    gadget_type = choice_or_default(form.get("gadget_type"), GENERATOR_GADGET_TYPES, "iPhone")
+    gadget_brand = choice_or_default(form.get("gadget_brand"), GENERATOR_GADGET_BRANDS, "Apple")
+    service_type = choice_or_default(form.get("service_type"), GENERATOR_SERVICE_TYPES, "screen replacement")
+    gadget_condition = choice_or_default(form.get("gadget_condition"), GENERATOR_GADGET_CONDITIONS, "like new")
+    custom_service = clean_text(form.get("custom_service"), 100)
 
-    location = form.get("location") or "studio"
+    if product_domain == "Batik Fashion":
+        if product_type == "custom":
+            product_subject = clean_text(form.get("custom_product"), 80) or "custom batik product"
+        else:
+            product_subject = GENERATOR_PRODUCT_TRANSLATIONS.get(product_type, product_type)
+        campaign_subject = "batik fashion affiliate/product campaign"
+        subject_sentence = f"Feature {model_labels.get(choice_or_default(form.get('model_type'), GENERATOR_MODEL_TYPES, 'female'))} wearing or presenting a {product_subject}"
+        preservation_sentence = "For image-to-video, preserve the same face identity, garment shape, batik motif, fabric texture, and product color from the first frame to the final frame."
+        product_photo_sentence = "Treat the product as the hero object, make the fabric surface and silhouette clearly visible, and avoid adding a talent unless explicitly needed."
+    elif product_domain == "Gadget Product":
+        if gadget_type == "custom":
+            gadget_label = clean_text(form.get("custom_gadget"), 100) or "custom gadget"
+        else:
+            gadget_label = gadget_type
+        product_subject = f"{gadget_brand} {gadget_label}" if gadget_brand != "Other" else gadget_label
+        campaign_subject = "gadget product affiliate/product campaign"
+        subject_sentence = f"Feature {product_subject} in {gadget_condition} condition as the hero product"
+        preservation_sentence = "For image-to-video, preserve the exact device shape, screen content style, camera layout, frame color, ports, and accessory placement from the first frame to the final frame."
+        product_photo_sentence = "Treat the gadget as the hero object, make the screen, frame, camera module, buttons, ports, and accessories clearly visible, and avoid adding hands unless explicitly needed."
+    else:
+        if gadget_type == "custom":
+            gadget_label = clean_text(form.get("custom_gadget"), 100) or "customer gadget"
+        else:
+            gadget_label = gadget_type
+        service_label = custom_service if service_type == "custom" and custom_service else service_type
+        product_subject = f"{service_label} for {gadget_brand} {gadget_label}" if gadget_brand != "Other" else f"{service_label} for {gadget_label}"
+        campaign_subject = "gadget repair and service campaign"
+        subject_sentence = f"Show a trustworthy {product_subject} service scenario with a clean before-and-after result"
+        preservation_sentence = "For image-to-video, preserve the exact device shape, repair context, tool placement, screen condition, and before-after continuity from the first frame to the final frame."
+        product_photo_sentence = "Treat the repaired device and service result as the hero object, making the issue, repair quality, and final working condition visually clear."
+
+    location = choice_or_default(form.get("location"), GENERATOR_LOCATIONS, "studio")
     if location == "custom":
-        location = form.get("custom_location") or "lokasi custom"
-
-    model_text = model_labels.get(form.get("model_type"), model_labels["none"])
-    content_style = form.get("content_style") or "affiliate"
-    camera_movement = form.get("camera_movement") or "slow push-in"
-    duration = form.get("duration") or "15s"
-    aspect_ratio = form.get("aspect_ratio") or "9:16"
-    visual_style = form.get("visual_style") or "clean commercial"
-    selling_point = (form.get("selling_point") or "").strip()
-    additional_instruction = (form.get("additional_instruction") or "").strip()
-
-    prompt = (
-        f"Buat video {content_style} fashion batik vertikal {aspect_ratio} berdurasi {duration}. "
-        f"{model_text} mengenakan {product_type} di {location} dengan pencahayaan hangat dan natural. "
-        f"Kamera bergerak {camera_movement} untuk menampilkan motif kain, tekstur, cutting pakaian, "
-        "detail jahitan, dan kesan produk yang rapi. "
+        location = clean_text(form.get("custom_location"), 80) or "custom location"
+    place_reference = choice_or_default(
+        form.get("place_reference"),
+        GENERATOR_PLACE_REFERENCES,
+        "minimalist warm studio",
     )
+    if place_reference == "custom":
+        place_reference_text = clean_text(form.get("custom_place_reference"), 220) or "a custom reference location with a clean, warm, professional fashion atmosphere"
+    else:
+        place_reference_text = GENERATOR_PLACE_REFERENCE_DETAILS.get(place_reference, place_reference)
+
+    model_type_default = "female" if product_domain == "Batik Fashion" else "none"
+    model_type = choice_or_default(form.get("model_type"), GENERATOR_MODEL_TYPES, model_type_default)
+    model_text = model_labels.get(model_type, model_labels["female"])
+    content_style = choice_or_default(form.get("content_style"), GENERATOR_CONTENT_STYLES, "affiliate")
+    camera_movement = choice_or_default(form.get("camera_movement"), GENERATOR_CAMERA_MOVEMENTS, "slow push-in")
+    duration = choice_or_default(form.get("duration"), GENERATOR_DURATIONS, "15s")
+    aspect_ratio = choice_or_default(form.get("aspect_ratio"), ["9:16", "1:1", "16:9"], "9:16")
+    visual_style = choice_or_default(form.get("visual_style"), VISUAL_STYLES, "clean commercial")
+    framing = choice_or_default(form.get("framing"), GENERATOR_FRAMINGS, "medium to close-up")
+    lighting = choice_or_default(form.get("lighting"), GENERATOR_LIGHTINGS, "soft warm natural light")
+    mood = choice_or_default(form.get("mood"), GENERATOR_MOODS, "confident")
+    quality_level = choice_or_default(form.get("quality_level"), GENERATOR_QUALITY_LEVELS, "high-converting affiliate creative")
+    model_action = choice_or_default(
+        form.get("model_action"),
+        GENERATOR_ACTIONS,
+        "adjusting the sleeves while showing the batik pattern",
+    )
+    detail_focus = form.getlist("detail_focus")
+    detail_focus = [item for item in detail_focus if item in GENERATOR_DETAIL_FOCUS]
+    if not detail_focus:
+        detail_focus = GENERATOR_DOMAIN_DETAIL_DEFAULTS.get(product_domain, ["product color"])
+    detail_text = ", ".join(detail_focus)
+    selling_point = clean_text(form.get("selling_point"), 500)
+    additional_instruction = clean_text(form.get("additional_instruction"), 500)
+    hook = clean_text(form.get("hook"), 180)
+    cta = clean_text(form.get("cta"), 160)
+
+    objective = f"Create a {output_type.lower()} for a {campaign_subject} in a {content_style} style, aspect ratio {aspect_ratio}"
+    if output_type != "Image Prompt" and output_type != "Product Photo":
+        objective += f", duration {duration}"
+    objective += "."
+
+    movement_sentence = f"Use {framing} as the main framing and apply a {camera_movement} camera movement"
+    if output_type in ["Image Prompt", "Product Photo"]:
+        movement_sentence = f"Use {framing} as the main composition with a clear product-first layout"
+
+    prompt_parts = [
+        objective,
+        f"{subject_sentence}, with a {mood} mood and a polished but believable styling direction.",
+        f"Set the scene in a {location}, using the place reference: {place_reference_text}.",
+        f"Use {lighting}, warm natural color tones, a tidy background, and a professional {quality_level} finish.",
+        f"{movement_sentence}, keeping the product readable, centered when needed, and visually dominant throughout the frame.",
+        f"The main action is {model_action}, with clear attention to {detail_text}.",
+    ]
+    if hook:
+        prompt_parts.append(f"Opening visual hook: {hook}.")
     if selling_point:
-        prompt += f"Tonjolkan selling point: {selling_point}. "
-    prompt += (
-        f"Visual {visual_style}, profesional, bersih, tanpa teks, tanpa watermark, tanpa logo."
-    )
+        prompt_parts.append(f"Highlight these selling points naturally: {selling_point}.")
+    if cta:
+        prompt_parts.append(f"End direction or visual CTA: {cta}.")
+    if output_type == "Image to Video":
+        prompt_parts.append(preservation_sentence)
+    if output_type == "Product Photo":
+        prompt_parts.append(product_photo_sentence)
+    prompt_parts.append("No text overlay, no logo, no watermark, no neon elements, no glow effects, no gradients.")
     if additional_instruction:
-        prompt += f" Instruksi tambahan: {additional_instruction}."
+        prompt_parts.append(f"Additional instruction: {additional_instruction}.")
 
-    negative_prompt = (
-        "hindari wajah terlalu AI, tangan aneh, jari berlebih, motif batik berubah, baju rusak, "
-        "proporsi tubuh tidak natural, pencahayaan berlebihan, background berantakan, teks, logo, "
-        "watermark, blur berlebihan, warna neon, efek glow, gradient."
-    )
+    negative_items = [
+        "AI-looking face",
+        "plastic skin",
+        "distorted hands",
+        "extra fingers",
+        "unnatural body proportions",
+        "changed product color",
+        "cluttered background",
+        "harsh lighting",
+        "overexposed",
+        "excessive blur",
+        "text",
+        "logo",
+        "watermark",
+        "neon colors",
+        "glow effects",
+        "gradient",
+    ]
+    if product_domain == "Batik Fashion":
+        negative_items.extend(["warped or melting batik motif", "damaged clothing", "messy stitching"])
+    elif product_domain == "Gadget Product":
+        negative_items.extend([
+            "warped device shape",
+            "incorrect camera layout",
+            "broken screen unless requested",
+            "fake brand logo",
+            "unreadable screen reflection",
+            "bent laptop body",
+            "messy cables",
+        ])
+    else:
+        negative_items.extend([
+            "unsafe repair handling",
+            "dirty repair table",
+            "unprofessional tools",
+            "sparks",
+            "smoke",
+            "broken screen after repair",
+            "fake brand logo",
+            "customer data visible on screen",
+        ])
+    if output_type in ["Video Affiliate", "Image to Video"]:
+        negative_items.extend(["jittery motion", "flicker", "heavy motion blur", "face changing between frames"])
+    if model_type == "none" or output_type == "Product Photo":
+        negative_items.extend(["human model", "human hands entering the frame"])
+        if product_domain == "Batik Fashion":
+            negative_items.append("broken mannequin")
+    negative_prompt = "Negative prompt: avoid " + ", ".join(negative_items) + "."
+    prompt = " ".join(prompt_parts + [negative_prompt])
     return prompt, negative_prompt
 
 
@@ -142,13 +481,17 @@ def register():
         return redirect(url_for("dashboard"))
 
     if request.method == "POST":
-        username = request.form.get("username", "").strip()
-        email = request.form.get("email", "").strip().lower()
+        username = clean_text(request.form.get("username"), 80)
+        email = clean_text(request.form.get("email"), 120).lower()
         password = request.form.get("password", "")
         confirm_password = request.form.get("confirm_password", "")
 
         if not username or not email or not password:
             flash("Username, email, dan password wajib diisi.", "error")
+        elif not EMAIL_RE.match(email):
+            flash("Format email tidak valid.", "error")
+        elif len(password) < 8:
+            flash("Password minimal 8 karakter.", "error")
         elif password != confirm_password:
             flash("Konfirmasi password tidak cocok.", "error")
         elif User.query.filter((User.email == email) | (User.username == username)).first():
@@ -173,23 +516,31 @@ def login():
         return redirect(url_for("dashboard"))
 
     if request.method == "POST":
-        email = request.form.get("email", "").strip().lower()
+        email = clean_text(request.form.get("email"), 120).lower()
         password = request.form.get("password", "")
         user = User.query.filter_by(email=email).first()
 
-        if user and check_password_hash(user.password_hash, password):
+        if login_is_limited():
+            flash("Terlalu banyak percobaan login. Coba lagi beberapa menit lagi.", "error")
+        elif user and check_password_hash(user.password_hash, password):
+            session.clear()
             login_user(user)
+            get_csrf_token()
+            clear_failed_logins()
             flash("Login berhasil.", "success")
             return redirect(url_for("dashboard"))
-        flash("Email atau password salah.", "error")
+        else:
+            record_failed_login()
+            flash("Email atau password salah.", "error")
 
     return render_template("auth/login.html")
 
 
-@app.route("/logout")
+@app.route("/logout", methods=["POST"])
 @login_required
 def logout():
     logout_user()
+    session.clear()
     flash("Kamu sudah logout.", "success")
     return redirect(url_for("login"))
 
@@ -197,6 +548,7 @@ def logout():
 @app.route("/")
 @login_required
 def dashboard():
+    reset_old_tasks_for_current_user()
     prompts = Prompt.query.filter_by(user_id=current_user.id)
     tasks = ContentTask.query.filter_by(user_id=current_user.id)
     top_prompt = prompts.order_by(Prompt.rating.desc(), Prompt.updated_at.desc()).first()
@@ -217,9 +569,9 @@ def dashboard():
 @app.route("/prompts")
 @login_required
 def prompts_index():
-    search = request.args.get("q", "").strip()
-    category = request.args.get("category", "").strip()
-    platform = request.args.get("platform", "").strip()
+    search = clean_text(request.args.get("q"), 120)
+    category = choice_or_default(request.args.get("category"), CATEGORIES, "")
+    platform = choice_or_default(request.args.get("platform"), PLATFORMS, "")
     query = Prompt.query.filter_by(user_id=current_user.id)
 
     if search:
@@ -301,15 +653,15 @@ def prompt_delete(id):
 
 
 def fill_prompt_from_form(prompt):
-    prompt.title = request.form.get("title", "").strip()
-    prompt.category = request.form.get("category", "Other")
-    prompt.platform = request.form.get("platform", "Other")
-    prompt.main_prompt = request.form.get("main_prompt", "").strip()
-    prompt.negative_prompt = request.form.get("negative_prompt", "").strip()
-    prompt.aspect_ratio = request.form.get("aspect_ratio", "").strip()
-    prompt.visual_style = request.form.get("visual_style", "").strip()
+    prompt.title = clean_text(request.form.get("title"), 160)
+    prompt.category = choice_or_default(request.form.get("category"), CATEGORIES, "Other")
+    prompt.platform = choice_or_default(request.form.get("platform"), PLATFORMS, "Other")
+    prompt.main_prompt = clean_text(request.form.get("main_prompt"), 12000)
+    prompt.negative_prompt = clean_text(request.form.get("negative_prompt"), 6000)
+    prompt.aspect_ratio = clean_text(request.form.get("aspect_ratio"), 20)
+    prompt.visual_style = clean_text(request.form.get("visual_style"), 80)
     prompt.rating = parse_rating(request.form.get("rating"))
-    prompt.notes = request.form.get("notes", "").strip()
+    prompt.notes = clean_text(request.form.get("notes"), 4000)
 
 
 @app.route("/generator", methods=["GET", "POST"])
@@ -318,8 +670,10 @@ def generator():
     generated_prompt = None
     negative_prompt = None
     form_data = {}
+    selected_detail_focus = ["batik motif", "fabric texture", "garment cut"]
     if request.method == "POST":
         form_data = request.form.to_dict()
+        selected_detail_focus = request.form.getlist("detail_focus")
         generated_prompt, negative_prompt = build_generated_prompt(request.form)
 
     return render_template(
@@ -327,6 +681,7 @@ def generator():
         generated_prompt=generated_prompt,
         negative_prompt=negative_prompt,
         form_data=form_data,
+        selected_detail_focus=selected_detail_focus,
         categories=CATEGORIES,
         platforms=PLATFORMS,
     )
@@ -335,8 +690,8 @@ def generator():
 @app.route("/generator/save", methods=["POST"])
 @login_required
 def generator_save():
-    title = request.form.get("title", "").strip() or "Generated Prompt Batik"
-    main_prompt = request.form.get("main_prompt", "").strip()
+    title = clean_text(request.form.get("title"), 160) or "Generated Prompt Batik"
+    main_prompt = clean_text(request.form.get("main_prompt"), 12000)
     if not main_prompt:
         flash("Generate prompt terlebih dahulu sebelum menyimpan.", "error")
         return redirect(url_for("generator"))
@@ -344,14 +699,14 @@ def generator_save():
     prompt = Prompt(
         user_id=current_user.id,
         title=title,
-        category=request.form.get("category", "Video Affiliate"),
-        platform=request.form.get("platform", "Other"),
+        category=choice_or_default(request.form.get("category"), CATEGORIES, "Video Affiliate"),
+        platform=choice_or_default(request.form.get("platform"), PLATFORMS, "Other"),
         main_prompt=main_prompt,
-        negative_prompt=request.form.get("negative_prompt", "").strip(),
-        aspect_ratio=request.form.get("aspect_ratio", "9:16"),
-        visual_style=request.form.get("visual_style", "clean commercial"),
+        negative_prompt=clean_text(request.form.get("negative_prompt"), 6000),
+        aspect_ratio=clean_text(request.form.get("aspect_ratio"), 20) or "9:16",
+        visual_style=clean_text(request.form.get("visual_style"), 80) or "clean commercial",
         rating=parse_rating(request.form.get("rating")),
-        notes=request.form.get("notes", "").strip(),
+        notes=clean_text(request.form.get("notes"), 4000),
     )
     db.session.add(prompt)
     db.session.commit()
@@ -362,7 +717,8 @@ def generator_save():
 @app.route("/tasks")
 @login_required
 def tasks_index():
-    status = request.args.get("status", "").strip()
+    reset_old_tasks_for_current_user(show_flash=True)
+    status = choice_or_default(request.args.get("status"), TASK_STATUSES, "")
     query = ContentTask.query.filter_by(user_id=current_user.id)
     if status:
         query = query.filter_by(status=status)
@@ -442,11 +798,12 @@ def fill_task_from_form(task):
         prompt = Prompt.query.filter_by(id=prompt_id, user_id=current_user.id).first() if prompt_id else None
         task.prompt_id = prompt.id if prompt else None
     task.title = request.form.get("title", "").strip()
-    task.content_type = request.form.get("content_type", "Image")
-    task.status = request.form.get("status", "Ide")
+    task.title = clean_text(request.form.get("title"), 160)
+    task.content_type = choice_or_default(request.form.get("content_type"), CONTENT_TYPES, "Image")
+    task.status = choice_or_default(request.form.get("status"), TASK_STATUSES, "Ide")
     task.due_date = parse_due_date(request.form.get("due_date"))
-    task.platform = request.form.get("platform", "Other")
-    task.notes = request.form.get("notes", "").strip()
+    task.platform = choice_or_default(request.form.get("platform"), PLATFORMS, "Other")
+    task.notes = clean_text(request.form.get("notes"), 4000)
 
 
 @app.context_processor
@@ -458,6 +815,26 @@ def inject_options():
         "content_types": CONTENT_TYPES,
         "aspect_ratios": ASPECT_RATIOS,
         "visual_styles": VISUAL_STYLES,
+        "generator_output_types": GENERATOR_OUTPUT_TYPES,
+        "generator_product_domains": GENERATOR_PRODUCT_DOMAINS,
+        "generator_model_types": GENERATOR_MODEL_TYPES,
+        "generator_product_types": GENERATOR_PRODUCT_TYPES,
+        "generator_gadget_types": GENERATOR_GADGET_TYPES,
+        "generator_gadget_brands": GENERATOR_GADGET_BRANDS,
+        "generator_service_types": GENERATOR_SERVICE_TYPES,
+        "generator_gadget_conditions": GENERATOR_GADGET_CONDITIONS,
+        "generator_locations": GENERATOR_LOCATIONS,
+        "generator_place_references": GENERATOR_PLACE_REFERENCES,
+        "generator_content_styles": GENERATOR_CONTENT_STYLES,
+        "generator_camera_movements": GENERATOR_CAMERA_MOVEMENTS,
+        "generator_durations": GENERATOR_DURATIONS,
+        "generator_framings": GENERATOR_FRAMINGS,
+        "generator_lightings": GENERATOR_LIGHTINGS,
+        "generator_moods": GENERATOR_MOODS,
+        "generator_actions": GENERATOR_ACTIONS,
+        "generator_detail_focus": GENERATOR_DETAIL_FOCUS,
+        "generator_quality_levels": GENERATOR_QUALITY_LEVELS,
+        "csrf_token": get_csrf_token,
     }
 
 

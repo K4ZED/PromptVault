@@ -9,7 +9,7 @@ PromptVault adalah web app Flask untuk AI Marketing Specialist yang perlu menyim
 - Dashboard ringkasan prompt dan content task.
 - CRUD Prompt Library dengan search, filter, rating, catatan, dan tombol copy.
 - Prompt Generator berbasis template lokal tanpa API AI eksternal.
-- CRUD Content Tasks dengan status produksi dan relasi opsional ke prompt.
+- CRUD Content Tasks harian dengan status produksi, relasi opsional ke prompt, dan reset otomatis setiap hari.
 - PostgreSQL via Neon menggunakan SQLAlchemy.
 - Siap deploy ke Vercel.
 
@@ -45,6 +45,8 @@ cp .env.example .env
 ```
 
 4. Isi `DATABASE_URL` dan `SECRET_KEY` di `.env`.
+   Gunakan `AUTO_CREATE_TABLES=true` untuk setup awal. Setelah tabel sudah ada di production, kamu bisa set `AUTO_CREATE_TABLES=false`.
+   `RESET_CONTENT_TASKS_DAILY=true` membuat content task otomatis reset setiap hari berdasarkan `APP_TIMEZONE`.
 
 ## Setup Neon PostgreSQL
 
@@ -70,6 +72,9 @@ Buka `http://127.0.0.1:5000`.
 3. Tambahkan environment variables:
    - `DATABASE_URL`
    - `SECRET_KEY`
+   - `AUTO_CREATE_TABLES`
+   - `RESET_CONTENT_TASKS_DAILY`
+   - `APP_TIMEZONE`
 4. Deploy. Konfigurasi `vercel.json` sudah mengarahkan request ke `app.py`.
 
 ## Struktur Folder

@@ -4,33 +4,69 @@
 <header class="page-header">
     <div>
         <h1>Prompt Generator</h1>
-        <p>Buat prompt batik dari template lokal tanpa API eksternal.</p>
+        <p>Buat prompt English untuk batik fashion, gadget product, dan gadget service dari template lokal.</p>
     </div>
 </header>
 
 <section class="two-column generator-grid">
     <form method="post" class="card form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="model_type" value="{{ form_data.get('model_type', 'none') }}">
+        <input type="hidden" name="framing" value="{{ form_data.get('framing', 'medium to close-up') }}">
+        <input type="hidden" name="camera_movement" value="{{ form_data.get('camera_movement', 'slow push-in') }}">
+        <input type="hidden" name="lighting" value="{{ form_data.get('lighting', 'soft warm natural light') }}">
+        <input type="hidden" name="mood" value="{{ form_data.get('mood', 'confident') }}">
+        <input type="hidden" name="duration" value="{{ form_data.get('duration', '15s') }}">
+        <input type="hidden" name="visual_style" value="{{ form_data.get('visual_style', 'clean commercial') }}">
+        <input type="hidden" name="quality_level" value="{{ form_data.get('quality_level', 'high-converting affiliate creative') }}">
+        <input type="hidden" name="model_action" value="{{ form_data.get('model_action', 'showing the product clearly with a clean commercial angle') }}">
+        <input type="hidden" name="product_type" value="{{ form_data.get('product_type', 'kemeja batik') }}">
+        <input type="hidden" name="custom_product" value="{{ form_data.get('custom_product','') }}">
+        <input type="hidden" name="gadget_type" value="{{ form_data.get('gadget_type', 'iPhone') }}">
+        <input type="hidden" name="custom_gadget" value="{{ form_data.get('custom_gadget','') }}">
+        <input type="hidden" name="service_type" value="{{ form_data.get('service_type', 'screen replacement') }}">
+        <input type="hidden" name="custom_service" value="{{ form_data.get('custom_service','') }}">
         <div class="form-grid">
-            <label>Model Type
-                <select name="model_type">
-                    {% for value, label in [('female','Female'),('male','Male'),('couple','Couple'),('none','None')] %}
-                        <option value="{{ value }}" {{ 'selected' if form_data.get('model_type') == value else '' }}>{{ label }}</option>
+            <label>Product Domain
+                <select name="product_domain">
+                    {% for value in generator_product_domains %}
+                        <option value="{{ value }}" {{ 'selected' if form_data.get('product_domain', 'Batik Fashion') == value else '' }}>{{ value }}</option>
                     {% endfor %}
                 </select>
             </label>
-            <label>Product Type
-                <select name="product_type">
-                    {% for value in ['kemeja batik','blouse batik','dress batik','outer batik','kain batik','custom'] %}
-                        <option value="{{ value }}" {{ 'selected' if form_data.get('product_type') == value else '' }}>{{ value }}</option>
+            <label>Output Type
+                <select name="output_type">
+                    {% for value in generator_output_types %}
+                        <option value="{{ value }}" {{ 'selected' if form_data.get('output_type', 'Video Affiliate') == value else '' }}>{{ value }}</option>
                     {% endfor %}
                 </select>
             </label>
-            <label>Custom Product
-                <input name="custom_product" value="{{ form_data.get('custom_product','') }}">
+            <label>Item / Service Type
+                <select id="generator-item-type" data-selected="{{ form_data.get('service_type') or form_data.get('gadget_type') or form_data.get('product_type') or '' }}"></select>
             </label>
+            <label>Item Detail
+                <input id="generator-item-detail" value="{{ form_data.get('custom_service') or form_data.get('custom_gadget') or form_data.get('custom_product') or '' }}" placeholder="example: iPhone 13 Pro, MacBook M1, premium batik shirt, Face ID repair">
+            </label>
+            <label data-domain-field="Gadget Product,Gadget Service">Gadget Brand
+                <select name="gadget_brand">
+                    {% for value in generator_gadget_brands %}
+                        <option value="{{ value }}" {{ 'selected' if form_data.get('gadget_brand', 'Apple') == value else '' }}>{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label data-domain-field="Gadget Product,Gadget Service">Gadget Condition
+                <select name="gadget_condition">
+                    {% for value in generator_gadget_conditions %}
+                        <option value="{{ value }}" {{ 'selected' if form_data.get('gadget_condition', 'like new') == value else '' }}>{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+        </div>
+
+        <div class="form-grid">
             <label>Location
                 <select name="location">
-                    {% for value in ['studio','ruang tamu','outdoor','butik','kantor','custom'] %}
+                    {% for value in generator_locations %}
                         <option value="{{ value }}" {{ 'selected' if form_data.get('location') == value else '' }}>{{ value }}</option>
                     {% endfor %}
                 </select>
@@ -38,24 +74,23 @@
             <label>Custom Location
                 <input name="custom_location" value="{{ form_data.get('custom_location','') }}">
             </label>
+            <label>Place Reference
+                <select name="place_reference">
+                    {% for value in generator_place_references %}
+                        <option value="{{ value }}" {{ 'selected' if form_data.get('place_reference', 'minimalist warm studio') == value else '' }}>{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Custom Place Reference
+                <input name="custom_place_reference" value="{{ form_data.get('custom_place_reference','') }}" placeholder="example: a clean gadget booth, repair desk, or curated fashion bazaar">
+            </label>
+        </div>
+
+        <div class="form-grid">
             <label>Content Style
                 <select name="content_style">
-                    {% for value in ['affiliate','cinematic','casual','premium','product showcase'] %}
+                    {% for value in generator_content_styles %}
                         <option value="{{ value }}" {{ 'selected' if form_data.get('content_style') == value else '' }}>{{ value }}</option>
-                    {% endfor %}
-                </select>
-            </label>
-            <label>Camera Movement
-                <select name="camera_movement">
-                    {% for value in ['static','slow push-in','zoom in','handheld','orbit','tracking shot'] %}
-                        <option value="{{ value }}" {{ 'selected' if form_data.get('camera_movement') == value else '' }}>{{ value }}</option>
-                    {% endfor %}
-                </select>
-            </label>
-            <label>Duration
-                <select name="duration">
-                    {% for value in ['10s','15s','30s'] %}
-                        <option value="{{ value }}" {{ 'selected' if form_data.get('duration') == value else '' }}>{{ value }}</option>
                     {% endfor %}
                 </select>
             </label>
@@ -66,43 +101,44 @@
                     {% endfor %}
                 </select>
             </label>
-            <label>Visual Style
-                <select name="visual_style">
-                    {% for value in visual_styles %}
-                        <option value="{{ value }}" {{ 'selected' if form_data.get('visual_style') == value else '' }}>{{ value }}</option>
-                    {% endfor %}
-                </select>
-            </label>
         </div>
+
+        <label>Opening Visual Hook
+            <input name="hook" value="{{ form_data.get('hook','') }}" placeholder="example: close-up of batik texture, iPhone camera module, or repair before-after">
+        </label>
         <label>Selling Point
-            <textarea name="selling_point" rows="3">{{ form_data.get('selling_point','') }}</textarea>
+            <textarea name="selling_point" rows="3" placeholder="example: breathable fabric; original-looking device condition; fast trusted repair; warranty; data-safe service">{{ form_data.get('selling_point','') }}</textarea>
+        </label>
+        <label>CTA / Ending Visual
+            <input name="cta" value="{{ form_data.get('cta','') }}" placeholder="example: the model smiles while the product details remain clearly visible">
         </label>
         <label>Additional Instruction
-            <textarea name="additional_instruction" rows="3">{{ form_data.get('additional_instruction','') }}</textarea>
+            <textarea name="additional_instruction" rows="3" placeholder="example: keep the tone elegant, realistic, trustworthy, and suitable for affiliate/service content">{{ form_data.get('additional_instruction','') }}</textarea>
         </label>
         <button class="btn btn-primary" type="submit">Generate Prompt</button>
     </form>
 
     <div class="card">
         <div class="section-head">
-            <h2>Preview Output</h2>
+            <h2>Full Prompt</h2>
             {% if generated_prompt %}<button class="btn btn-small btn-secondary" data-copy="{{ generated_prompt|e }}">Copy Main</button>{% endif %}
         </div>
-        <div class="prompt-box">{{ generated_prompt or 'Output prompt akan muncul setelah form digenerate.' }}</div>
+        <div class="prompt-box">{{ generated_prompt or 'A complete English one-paragraph prompt will appear after generation.' }}</div>
         <div class="section-head top-space">
-            <h2>Negative Prompt</h2>
+            <h2>Negative Only</h2>
             {% if negative_prompt %}<button class="btn btn-small btn-secondary" data-copy="{{ negative_prompt|e }}">Copy Negative</button>{% endif %}
         </div>
-        <div class="prompt-box">{{ negative_prompt or 'Negative prompt otomatis akan muncul di sini.' }}</div>
+        <div class="prompt-box">{{ negative_prompt or 'Negative prompt will also be shown separately for quick copy.' }}</div>
 
         {% if generated_prompt %}
             <form method="post" action="{{ url_for('generator_save') }}" class="form save-generated">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="main_prompt" value="{{ generated_prompt }}">
                 <input type="hidden" name="negative_prompt" value="{{ negative_prompt }}">
                 <input type="hidden" name="aspect_ratio" value="{{ form_data.get('aspect_ratio','9:16') }}">
                 <input type="hidden" name="visual_style" value="{{ form_data.get('visual_style','clean commercial') }}">
                 <label>Judul Library
-                    <input name="title" value="Generated {{ form_data.get('product_type','batik') }} {{ form_data.get('content_style','affiliate') }}">
+                    <input name="title" value="{{ form_data.get('output_type','Video Affiliate') }} {{ form_data.get('product_domain','Batik Fashion') }} {{ form_data.get('content_style','affiliate') }}">
                 </label>
                 <div class="form-grid">
                     <label>Kategori

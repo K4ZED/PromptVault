@@ -15,7 +15,10 @@
                 <a href="{{ url_for('prompts_index') }}" class="{{ 'active' if request.endpoint in ['prompts_index', 'prompt_new', 'prompt_edit', 'prompt_detail'] else '' }}">Prompt Library</a>
                 <a href="{{ url_for('generator') }}" class="{{ 'active' if request.endpoint == 'generator' else '' }}">Prompt Generator</a>
                 <a href="{{ url_for('tasks_index') }}" class="{{ 'active' if request.endpoint in ['tasks_index', 'task_new', 'task_edit'] else '' }}">Content Tasks</a>
-                <a href="{{ url_for('logout') }}">Logout</a>
+                <form method="post" action="{{ url_for('logout') }}" class="nav-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit">Logout</button>
+                </form>
             </nav>
             <div class="user-box">
                 <span>{{ current_user.username }}</span>
@@ -25,7 +28,10 @@
         <main class="main">
             <div class="mobile-topbar">
                 <a class="logo" href="{{ url_for('dashboard') }}">PromptVault</a>
-                <a class="btn btn-secondary" href="{{ url_for('logout') }}">Logout</a>
+                <form method="post" action="{{ url_for('logout') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-secondary" type="submit">Logout</button>
+                </form>
             </div>
             {% include "_flash.html" ignore missing %}
             {% block content %}{% endblock %}

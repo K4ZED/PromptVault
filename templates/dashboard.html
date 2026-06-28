@@ -14,8 +14,8 @@
 
 <section class="stats-grid">
     <article class="card stat"><span>Total Prompt</span><strong>{{ total_prompts }}</strong></article>
-    <article class="card stat"><span>Total Task</span><strong>{{ total_tasks }}</strong></article>
-    <article class="card stat"><span>Task Selesai</span><strong>{{ completed_tasks }}</strong></article>
+    <article class="card stat"><span>Task Hari Ini</span><strong>{{ total_tasks }}</strong></article>
+    <article class="card stat"><span>Selesai Hari Ini</span><strong>{{ completed_tasks }}</strong></article>
     <article class="card stat">
         <span>Rating Tertinggi</span>
         <strong>{{ top_prompt.title if top_prompt else '-' }}</strong>
@@ -43,7 +43,7 @@
     </div>
     <div class="card">
         <div class="section-head">
-            <h2>Task Terbaru</h2>
+            <h2>Task Hari Ini</h2>
             <a href="{{ url_for('tasks_index') }}">Lihat semua</a>
         </div>
         {% if recent_tasks %}
@@ -56,7 +56,7 @@
                 {% endfor %}
             </div>
         {% else %}
-            <div class="empty">Belum ada content task.</div>
+            <div class="empty">Belum ada content task untuk hari ini.</div>
         {% endif %}
     </div>
 </section>

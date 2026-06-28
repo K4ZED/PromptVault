@@ -4,7 +4,7 @@
 <header class="page-header">
     <div>
         <h1>Content Tasks</h1>
-        <p>Lacak status produksi konten dari ide sampai upload.</p>
+        <p>Task produksi harian. Task lama otomatis reset setiap awal hari.</p>
     </div>
     <a class="btn btn-primary" href="{{ url_for('task_new') }}">Tambah Task</a>
 </header>
@@ -46,6 +46,7 @@
                             <td class="row-actions">
                                 <a class="btn btn-small btn-secondary" href="{{ url_for('task_edit', id=task.id) }}">Edit</a>
                                 <form method="post" action="{{ url_for('task_delete', id=task.id) }}" data-confirm="Hapus task ini?">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button class="btn btn-small btn-danger" type="submit">Delete</button>
                                 </form>
                             </td>
@@ -55,7 +56,7 @@
             </table>
         </div>
     {% else %}
-        <div class="empty">Belum ada task produksi konten.</div>
+        <div class="empty">Belum ada task produksi konten untuk hari ini.</div>
     {% endif %}
 </section>
 {% endblock %}
